@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MEAL Тренажер — Право на захист</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f0; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 1rem; }
+  .card { background: #fff; border-radius: 16px; padding: 2rem; max-width: 600px; width: 100%; box-shadow: 0 2px 20px rgba(0,0,0,0.08); }
+  .logo { display: flex; align-items: center; gap: 10px; margin-bottom: 1.5rem; }
+  .logo-badge { background: #1a3a6b; color: #fff; font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 6px; letter-spacing: 0.05em; }
+  .logo-text { font-size: 13px; color: #666; }
+  .progress-bar { height: 4px; background: #eee; border-radius: 2px; margin-bottom: 1.5rem; }
+  .progress-fill { height: 100%; border-radius: 2px; background: #1D9E75; transition: width 0.4s; }
+  .q-counter { font-size: 12px; font-weight: 600; color: #888; letter-spacing: 0.05em; margin-bottom: 0.5rem; text-transform: uppercase; }
+  .q-scenario { background: #f8f8f5; border: 1px solid #eee; border-radius: 12px; padding: 1rem 1.25rem; font-size: 15px; line-height: 1.6; color: #222; margin-bottom: 1.25rem; }
+  .q-prompt { font-size: 14px; color: #666; margin-bottom: 1rem; }
+  .options { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 1rem; }
+  .opt-btn { background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 0.75rem 1rem; font-size: 14px; font-weight: 500; color: #222; cursor: pointer; text-align: left; transition: background 0.15s, border-color 0.15s; font-family: inherit; }
+  .opt-btn:hover:not(:disabled) { background: #f5f5f0; border-color: #bbb; }
+  .opt-btn.correct { background: #E1F5EE; border-color: #1D9E75; color: #085041; }
+  .opt-btn.wrong { background: #FCEBEB; border-color: #E24B4A; color: #501313; }
+  .opt-btn:disabled { cursor: default; }
+  .feedback { border-radius: 8px; padding: 0.75rem 1rem; font-size: 14px; line-height: 1.5; margin-bottom: 1rem; display: none; }
+  .feedback.correct { background: #E1F5EE; color: #085041; border: 1px solid #5DCAA5; }
+  .feedback.wrong { background: #FCEBEB; color: #501313; border: 1px solid #F09595; }
+  .next-btn { background: #1a3a6b; border: none; border-radius: 8px; padding: 0.7rem 1.5rem; font-size: 14px; font-weight: 500; cursor: pointer; color: #fff; display: none; font-family: inherit; transition: background 0.15s; }
+  .next-btn:hover { background: #142d54; }
+  .result-wrap { text-align: center; padding: 2rem 0; }
+  .result-score { font-size: 56px; font-weight: 600; color: #1a3a6b; margin-bottom: 0.5rem; }
+  .result-label { font-size: 15px; color: #666; margin-bottom: 1.5rem; line-height: 1.5; }
+  .restart-btn { background: #1a3a6b; border: none; border-radius: 8px; padding: 0.7rem 1.5rem; font-size: 14px; font-weight: 500; cursor: pointer; color: #fff; font-family: inherit; }
+  .restart-btn:hover { background: #142d54; }
+  @media (max-width: 480px) { .options { grid-template-columns: 1fr; } .card { padding: 1.25rem; } }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="logo">
+    <div class="logo-badge">ПРАВО НА ЗАХИСТ</div>
+    <div class="logo-text">Практичний тренажер — MEAL</div>
+  </div>
+
+  <div id="quiz-area">
+    <div class="progress-bar"><div class="progress-fill" id="progress" style="width:0%"></div></div>
+    <div class="q-counter" id="q-counter">Питання 1 з 4</div>
+    <div class="q-scenario" id="q-scenario"></div>
+    <div class="q-prompt">До якого компонента MEAL належить ця дія?</div>
+    <div class="options" id="options"></div>
+    <div class="feedback" id="feedback"></div>
+    <button class="next-btn" id="next-btn">Наступне питання →</button>
+  </div>
+
+  <div class="result-wrap" id="result-area" style="display:none">
+    <div class="result-score" id="result-score"></div>
+    <div class="result-label" id="result-label"></div>
+    <button class="restart-btn" onclick="restart()">Пройти ще раз</button>
+  </div>
+</div>
+
+<script>
+const questions = [
+  {
+    scenario: 'Щомісяця польова команда вносить дані про кількість виданих наборів у Трекер Активностей і порівнює фактичне охоплення з плановим показником.',
+    options: ['Моніторинг', 'Оцінювання', 'Підзвітність', 'Навчання'],
+    answer: 'Моніторинг',
+    explanation: 'Моніторинг — це систематичне відстеження прогресу в реальному часі під час реалізації програми. Внесення даних у Трекер і порівняння з планом — класичний приклад M.'
+  },
+  {
+    scenario: 'Через 6 місяців після завершення програми незалежна команда провела опитування бенефіціарів, щоб визначити, чи змінився їхній рівень правової обізнаності.',
+    options: ['Моніторинг', 'Підзвітність', 'Оцінювання', 'Навчання'],
+    answer: 'Оцінювання',
+    explanation: 'Оцінювання відбувається після завершення або на ключових етапах — щоб виміряти результат і вплив. Незалежна команда + питання "чи змінилось" = Evaluation.'
+  },
+  {
+    scenario: 'На кожному пункті видачі розміщено постер з критеріями відбору та QR-кодом на форму зворотного зв\'язку. Координатор щотижня переглядає отримані скарги та реагує на них.',
+    options: ['Моніторинг', 'Навчання', 'Оцінювання', 'Підзвітність'],
+    answer: 'Підзвітність',
+    explanation: 'Підзвітність — це механізми, які дають бенефіціарам голос і гарантують, що організація відповідає на їхні потреби та скарги. Постер + форма зворотного зв\'язку + реакція = Accountability.'
+  },
+  {
+    scenario: 'Після аналізу скарг команда виявила, що літні бенефіціари не розуміють умов програми. За результатами спростили форму заявки та провели додатковий інструктаж для польових волонтерів.',
+    options: ['Підзвітність', 'Навчання', 'Моніторинг', 'Оцінювання'],
+    answer: 'Навчання',
+    explanation: 'Навчання — це використання даних для адаптації та покращення програми. Виявили проблему → змінили підхід → навчили команду. Це цикл організаційного навчання.'
+  }
+];
+
+let current = 0, score = 0, answered = false;
+
+function render() {
+  const q = questions[current];
+  document.getElementById('q-counter').textContent = `Питання ${current + 1} з ${questions.length}`;
+  document.getElementById('progress').style.width = `${(current / questions.length) * 100}%`;
+  document.getElementById('q-scenario').textContent = q.scenario;
+  document.getElementById('feedback').style.display = 'none';
+  document.getElementById('next-btn').style.display = 'none';
+  answered = false;
+
+  const opts = document.getElementById('options');
+  opts.innerHTML = '';
+  q.options.forEach(opt => {
+    const btn = document.createElement('button');
+    btn.className = 'opt-btn';
+    btn.textContent = opt;
+    btn.onclick = () => select(opt, q);
+    opts.appendChild(btn);
+  });
+}
+
+function select(opt, q) {
+  if (answered) return;
+  answered = true;
+  const btns = document.querySelectorAll('.opt-btn');
+  btns.forEach(b => {
+    b.disabled = true;
+    if (b.textContent === q.answer) b.classList.add('correct');
+    else if (b.textContent === opt && opt !== q.answer) b.classList.add('wrong');
+  });
+  if (opt === q.answer) score++;
+  const fb = document.getElementById('feedback');
+  fb.className = 'feedback ' + (opt === q.answer ? 'correct' : 'wrong');
+  fb.innerHTML = (opt === q.answer ? '✓ Правильно! ' : `✗ Правильна відповідь: <strong>${q.answer}</strong>. `) + q.explanation;
+  fb.style.display = 'block';
+  const nb = document.getElementById('next-btn');
+  nb.style.display = 'inline-block';
+  nb.textContent = current < questions.length - 1 ? 'Наступне питання →' : 'Переглянути результат →';
+}
+
+document.getElementById('next-btn').onclick = () => {
+  current++;
+  if (current >= questions.length) showResult();
+  else render();
+};
+
+function showResult() {
+  document.getElementById('quiz-area').style.display = 'none';
+  const ra = document.getElementById('result-area');
+  ra.style.display = 'block';
+  document.getElementById('result-score').textContent = `${score} / ${questions.length}`;
+  const labels = [
+    'Спробуйте ще раз — MEAL потребує практики 💪',
+    'Непогано, але є куди рости',
+    'Добре! Ви розумієте логіку MEAL',
+    'Відмінно! Всі 4 компоненти засвоєно ✓'
+  ];
+  document.getElementById('result-label').textContent = labels[score] || labels[3];
+  document.getElementById('progress').style.width = '100%';
+}
+
+function restart() {
+  current = 0; score = 0;
+  document.getElementById('result-area').style.display = 'none';
+  document.getElementById('quiz-area').style.display = 'block';
+  render();
+}
+
+render();
+</script>
+</body>
+</html>
