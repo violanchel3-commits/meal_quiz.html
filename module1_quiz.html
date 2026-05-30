@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Чому MEAL важливий — Квіз Модуль 1</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f0; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 1rem; }
+  .card { background: #fff; border-radius: 16px; padding: 2rem; max-width: 640px; width: 100%; box-shadow: 0 2px 20px rgba(0,0,0,0.08); }
+  .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; }
+  .logo { background: #1a3a6b; color: #fff; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 6px; letter-spacing: .04em; }
+  .qnum { font-size: 12px; color: #888; font-weight: 600; }
+  .prog-bar { height: 4px; background: #eee; border-radius: 2px; margin-bottom: 1.4rem; }
+  .prog-fill { height: 100%; border-radius: 2px; background: #1a3a6b; transition: width .4s; }
+  .topic-pill { display: inline-block; background: #E6F1FB; color: #0C447C; font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 20px; margin-bottom: .75rem; }
+  .scenario { background: #f8f8f5; border: 1px solid #eee; border-radius: 12px; padding: 1rem 1.25rem; font-size: 15px; line-height: 1.65; color: #222; margin-bottom: 1.1rem; }
+  .prompt { font-size: 13px; color: #666; margin-bottom: .9rem; font-weight: 500; }
+  .opts { display: grid; gap: 8px; margin-bottom: 1rem; }
+  .opt { background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: .75rem 1rem; font-size: 14px; font-weight: 500; color: #222; cursor: pointer; text-align: left; font-family: inherit; line-height: 1.45; transition: background .15s, border-color .15s; display: flex; gap: 10px; align-items: flex-start; }
+  .opt:hover:not(:disabled) { background: #f5f5f0; border-color: #bbb; }
+  .opt-letter { font-weight: 700; color: #888; min-width: 16px; }
+  .opt.correct { background: #E1F5EE; border-color: #1D9E75; color: #085041; }
+  .opt.correct .opt-letter { color: #085041; }
+  .opt.wrong { background: #FCEBEB; border-color: #E24B4A; color: #501313; }
+  .opt.wrong .opt-letter { color: #501313; }
+  .opt:disabled { cursor: default; }
+  .fb { border-radius: 8px; padding: .85rem 1rem; font-size: 14px; line-height: 1.55; margin-bottom: 1rem; display: none; }
+  .fb.correct { background: #E1F5EE; color: #085041; border: 1px solid #5DCAA5; }
+  .fb.wrong { background: #FCEBEB; color: #501313; border: 1px solid #F09595; }
+  .next-btn { background: #1a3a6b; border: none; border-radius: 8px; padding: .7rem 1.5rem; font-size: 14px; font-weight: 500; cursor: pointer; color: #fff; display: none; font-family: inherit; }
+  .next-btn:hover { background: #142d54; }
+  .result { text-align: center; padding: 2rem 0; }
+  .rscore { font-size: 54px; font-weight: 600; color: #1a3a6b; margin-bottom: .4rem; }
+  .rlabel { font-size: 15px; color: #666; margin-bottom: 1.75rem; line-height: 1.6; }
+  .topics-wrap { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 1.75rem; text-align: left; }
+  .topic-row { background: #f8f8f5; border-radius: 8px; padding: .6rem .85rem; font-size: 13px; display: flex; justify-content: space-between; align-items: center; }
+  .topic-name { color: #444; }
+  .topic-score { font-weight: 600; color: #1a3a6b; }
+  .restart { background: #1a3a6b; border: none; border-radius: 8px; padding: .7rem 1.5rem; font-size: 14px; font-weight: 500; cursor: pointer; color: #fff; font-family: inherit; }
+  .restart:hover { background: #142d54; }
+  @media (max-width: 480px) { .card { padding: 1.25rem; } .topics-wrap { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="header">
+    <div class="logo">ПРАВО НА ЗАХИСТ</div>
+    <div class="qnum" id="qnum">1 / 6</div>
+  </div>
+  <div class="prog-bar"><div class="prog-fill" id="prog" style="width:0%"></div></div>
+
+  <div id="quiz">
+    <div class="topic-pill" id="tpill"></div>
+    <div class="scenario" id="scenario"></div>
+    <div class="prompt">Оберіть правильну відповідь:</div>
+    <div class="opts" id="opts"></div>
+    <div class="fb" id="fb"></div>
+    <button class="next-btn" id="nbtn">Наступне питання →</button>
+  </div>
+
+  <div class="result" id="result" style="display:none">
+    <div class="rscore" id="rscore"></div>
+    <div class="rlabel" id="rlabel"></div>
+    <div class="topics-wrap" id="topics-wrap"></div>
+    <button class="restart" onclick="restart()">Пройти ще раз</button>
+  </div>
+</div>
+
+<script>
+const qs = [
+  {
+    topic: 'Роль MEAL',
+    scenario: 'Організація реалізує програму розподілу продовольчих наборів. Під час моніторингу виявилось, що 30% бенефіціарів не отримують допомогу через відсутність транспорту. Яка роль MEAL у цій ситуації?',
+    opts: [
+      'Зафіксувати факт для звіту донору',
+      'Виявити проблему і адаптувати підхід до доставки',
+      'Підтвердити що програма реалізується за планом',
+      'Передати проблему іншій організації'
+    ],
+    answer: 1,
+    exp: '<strong>MEAL — це не лише звітність, а інструмент прийняття рішень.</strong> Виявлення проблеми і адаптація програмного підходу — саме так MEAL впливає на якість допомоги та реальне охоплення цільової групи.'
+  },
+  {
+    topic: 'Зв\'язок із Sphere',
+    scenario: 'Організація роздає продуктові набори в пункті видачі. Технічні норми дотримані: набори укомплектовані відповідно до стандарту. Але під час моніторингового візиту виявилось, що літні бенефіціари не можуть дістатись до пункту видачі через відсутність транспорту, а інформація про розклад не була розповсюджена зрозумілою мовою. Що це означає для MEAL?',
+    opts: [
+      'Технічний стандарт виконано — проблема не стосується MEAL',
+      'Потрібно збільшити кількість наборів',
+      'Виконання технічного стандарту недостатньо — MEAL має моніторити і ЯК надається допомога: доступність, інформування, гідність',
+      'Це питання логістики, а не моніторингу'
+    ],
+    answer: 2,
+    exp: '<strong>Sphere визначає ЩО ми надаємо, а Protection Mainstreaming — ЯК.</strong> MEAL перевіряє обидва виміри: технічні показники і реальний доступ людей до допомоги, включно з мобільністю, мовою та інформуванням.'
+  },
+  {
+    topic: 'Зв\'язок із CHS',
+    scenario: 'Яке із зобов\'язань CHS безпосередньо вимагає від організації мати механізм збору скарг та зворотного зв\'язку від бенефіціарів?',
+    opts: [
+      'Зобов\'язання 2 — Ефективність та своєчасність',
+      'Зобов\'язання 5 — Скарги приймаються і розглядаються належним чином',
+      'Зобов\'язання 8 — Підтримка персоналу',
+      'Зобов\'язання 9 — Відповідальне управління ресурсами'
+    ],
+    answer: 1,
+    exp: '<strong>Зобов\'язання 5 CHS</strong> прямо вимагає наявності доступних та безпечних механізмів зворотного зв\'язку. У MEAL це реалізується через CFM — Complaint and Feedback Mechanism.'
+  },
+  {
+    topic: 'MEAL у програмному циклі',
+    scenario: 'На якому етапі програмного циклу MEAL є найменш важливим?',
+    opts: [
+      'Оцінка потреб',
+      'Планування та дизайн програми',
+      'Реалізація програми',
+      'MEAL є важливим на всіх етапах без винятку'
+    ],
+    answer: 3,
+    exp: '<strong>MEAL є наскрізною системою</strong> інтегрованою у всі етапи гуманітарного програмного циклу — від оцінки потреб до адаптації рішень на основі даних. Це закріплено у IASC Humanitarian Programme Cycle та стандартах CHS.'
+  },
+  {
+    topic: 'Роль даних у рішеннях',
+    scenario: 'В організації немає окремого MEAL-фахівця. Це означає, що:',
+    opts: [
+      'Організація звільнена від вимог до моніторингу',
+      'MEAL не можна впровадити без спеціаліста',
+      'Принципи MEAL є спільною відповідальністю всієї команди проєкту',
+      'Достатньо подавати щомісячні звіти донору'
+    ],
+    answer: 2,
+    exp: '<strong>Навіть без окремого MEAL-фахівця</strong> збір, перевірка, аналіз та використання даних залишаються відповідальністю кожного члена команди, залученого до реалізації гуманітарної програми.'
+  },
+  {
+    topic: 'Роль даних у рішеннях',
+    scenario: 'Організація зібрала дані про охоплення програмою, але ніхто їх не аналізує і не використовує для прийняття рішень. Яка проблема з точки зору MEAL?',
+    opts: [
+      'Дані зібрано правильно — цього достатньо',
+      'Збір даних без їх використання порушує принцип evidence-based рішень та підзвітності',
+      'Треба збирати більше даних перш ніж приймати рішення',
+      'Аналіз даних — відповідальність лише донора'
+    ],
+    answer: 1,
+    exp: '<strong>Якісні дані мають цінність лише коли вони ведуть до рішень.</strong> MEAL — це не збір заради збору, а повний цикл: дані → аналіз → рішення → адаптація програми.'
+  }
+];
+
+const letters = ['А', 'Б', 'В', 'Г'];
+let cur = 0, score = 0, answered = false;
+let topicScores = {};
+
+function render() {
+  const q = qs[cur];
+  document.getElementById('qnum').textContent = `${cur + 1} / ${qs.length}`;
+  document.getElementById('prog').style.width = `${(cur / qs.length) * 100}%`;
+  document.getElementById('tpill').textContent = q.topic;
+  document.getElementById('scenario').textContent = q.scenario;
+  document.getElementById('fb').style.display = 'none';
+  document.getElementById('nbtn').style.display = 'none';
+  answered = false;
+
+  const o = document.getElementById('opts');
+  o.innerHTML = '';
+  q.opts.forEach((opt, i) => {
+    const b = document.createElement('button');
+    b.className = 'opt';
+    b.innerHTML = `<span class="opt-letter">${letters[i]}</span><span>${opt}</span>`;
+    b.onclick = () => select(i, q);
+    o.appendChild(b);
+  });
+}
+
+function select(idx, q) {
+  if (answered) return;
+  answered = true;
+
+  if (!topicScores[q.topic]) topicScores[q.topic] = [0, 0];
+  topicScores[q.topic][1]++;
+
+  const btns = document.querySelectorAll('.opt');
+  btns.forEach((b, i) => {
+    b.disabled = true;
+    if (i === q.answer) b.classList.add('correct');
+    else if (i === idx && idx !== q.answer) b.classList.add('wrong');
+  });
+
+  const ok = idx === q.answer;
+  if (ok) { score++; topicScores[q.topic][0]++; }
+
+  const fb = document.getElementById('fb');
+  fb.className = 'fb ' + (ok ? 'correct' : 'wrong');
+  fb.innerHTML = (ok ? '✓ Правильно! ' : `✗ Правильна відповідь: <strong>${letters[q.answer]}) ${q.opts[q.answer]}</strong>. `) + q.exp;
+  fb.style.display = 'block';
+
+  const nb = document.getElementById('nbtn');
+  nb.style.display = 'inline-block';
+  nb.textContent = cur < qs.length - 1 ? 'Наступне питання →' : 'Переглянути результат →';
+}
+
+document.getElementById('nbtn').onclick = () => {
+  cur++;
+  if (cur >= qs.length) showResult();
+  else render();
+};
+
+function showResult() {
+  document.getElementById('quiz').style.display = 'none';
+  document.getElementById('result').style.display = 'block';
+  document.getElementById('prog').style.width = '100%';
+  document.getElementById('qnum').textContent = '✓ Завершено';
+  document.getElementById('rscore').textContent = `${score} / ${qs.length}`;
+
+  const labels = [
+    'Спробуйте ще раз — матеріал варто перечитати',
+    'Є над чим попрацювати — перегляньте пояснення',
+    'Непогано, але є прогалини',
+    'Добре! Основи засвоєно',
+    'Дуже добре!',
+    'Відмінно! Модуль 1 засвоєно повністю ✓',
+    'Відмінно! Модуль 1 засвоєно повністю ✓'
+  ];
+  document.getElementById('rlabel').textContent = labels[score] || labels[5];
+
+  const wrap = document.getElementById('topics-wrap');
+  wrap.innerHTML = '';
+  Object.entries(topicScores).forEach(([name, arr]) => {
+    const d = document.createElement('div');
+    d.className = 'topic-row';
+    d.innerHTML = `<span class="topic-name">${name}</span><span class="topic-score">${arr[0]}/${arr[1]}</span>`;
+    wrap.appendChild(d);
+  });
+}
+
+function restart() {
+  cur = 0; score = 0; topicScores = {};
+  document.getElementById('result').style.display = 'none';
+  document.getElementById('quiz').style.display = 'block';
+  render();
+}
+
+render();
+</script>
+</body>
+</html>
