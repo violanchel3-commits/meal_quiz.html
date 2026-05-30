@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Моніторинг та Оцінювання — Квіз Модуль 3</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f0; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 1rem; }
+  .card { background: #fff; border-radius: 16px; padding: 2rem; max-width: 640px; width: 100%; box-shadow: 0 2px 20px rgba(0,0,0,0.08); }
+  .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; }
+  .logo { background: #1a3a6b; color: #fff; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 6px; letter-spacing: .04em; }
+  .qnum { font-size: 12px; color: #888; font-weight: 600; }
+  .prog-bar { height: 4px; background: #eee; border-radius: 2px; margin-bottom: 1.4rem; }
+  .prog-fill { height: 100%; border-radius: 2px; background: #1a3a6b; transition: width .4s; }
+  .topic-pill { display: inline-block; font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 20px; margin-bottom: .75rem; }
+  .pill-m { background: #E6F1FB; color: #0C447C; }
+  .pill-e { background: #FAEEDA; color: #633806; }
+  .pill-v { background: #EAF3DE; color: #27500A; }
+  .pill-mix { background: #EEEDFE; color: #3C3489; }
+  .scenario { background: #f8f8f5; border: 1px solid #eee; border-radius: 12px; padding: 1rem 1.25rem; font-size: 15px; line-height: 1.65; color: #222; margin-bottom: 1.1rem; }
+  .prompt { font-size: 13px; color: #666; margin-bottom: .9rem; font-weight: 500; }
+  .opts { display: grid; gap: 8px; margin-bottom: 1rem; }
+  .opt { background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: .75rem 1rem; font-size: 14px; font-weight: 500; color: #222; cursor: pointer; text-align: left; font-family: inherit; line-height: 1.45; transition: background .15s, border-color .15s; display: flex; gap: 10px; align-items: flex-start; }
+  .opt:hover:not(:disabled) { background: #f5f5f0; border-color: #bbb; }
+  .opt-letter { font-weight: 700; color: #888; min-width: 16px; flex-shrink: 0; }
+  .opt.correct { background: #E1F5EE; border-color: #1D9E75; color: #085041; }
+  .opt.correct .opt-letter { color: #085041; }
+  .opt.wrong { background: #FCEBEB; border-color: #E24B4A; color: #501313; }
+  .opt.wrong .opt-letter { color: #501313; }
+  .opt:disabled { cursor: default; }
+  .fb { border-radius: 8px; padding: .85rem 1rem; font-size: 14px; line-height: 1.55; margin-bottom: 1rem; display: none; }
+  .fb.correct { background: #E1F5EE; color: #085041; border: 1px solid #5DCAA5; }
+  .fb.wrong { background: #FCEBEB; color: #501313; border: 1px solid #F09595; }
+  .next-btn { background: #1a3a6b; border: none; border-radius: 8px; padding: .7rem 1.5rem; font-size: 14px; font-weight: 500; cursor: pointer; color: #fff; display: none; font-family: inherit; }
+  .next-btn:hover { background: #142d54; }
+  .result { text-align: center; padding: 2rem 0; }
+  .rscore { font-size: 54px; font-weight: 600; color: #1a3a6b; margin-bottom: .4rem; }
+  .rlabel { font-size: 15px; color: #666; margin-bottom: 1.75rem; line-height: 1.6; }
+  .topics-wrap { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 1.75rem; text-align: left; }
+  .topic-row { background: #f8f8f5; border-radius: 8px; padding: .6rem .85rem; font-size: 13px; display: flex; justify-content: space-between; align-items: center; }
+  .topic-name { color: #444; }
+  .topic-score { font-weight: 600; color: #1a3a6b; }
+  .restart { background: #1a3a6b; border: none; border-radius: 8px; padding: .7rem 1.5rem; font-size: 14px; font-weight: 500; cursor: pointer; color: #fff; font-family: inherit; }
+  .restart:hover { background: #142d54; }
+  @media (max-width: 480px) { .card { padding: 1.25rem; } .topics-wrap { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="header">
+    <div class="logo">ПРАВО НА ЗАХИСТ</div>
+    <div class="qnum" id="qnum">1 / 6</div>
+  </div>
+  <div class="prog-bar"><div class="prog-fill" id="prog" style="width:0%"></div></div>
+
+  <div id="quiz">
+    <div id="tpill"></div>
+    <div class="scenario" id="scenario"></div>
+    <div class="prompt">Оберіть правильну відповідь:</div>
+    <div class="opts" id="opts"></div>
+    <div class="fb" id="fb"></div>
+    <button class="next-btn" id="nbtn">Наступне питання →</button>
+  </div>
+
+  <div class="result" id="result" style="display:none">
+    <div class="rscore" id="rscore"></div>
+    <div class="rlabel" id="rlabel"></div>
+    <div class="topics-wrap" id="topics-wrap"></div>
+    <button class="restart" onclick="restart()">Пройти ще раз</button>
+  </div>
+</div>
+
+<script>
+const qs = [
+  {
+    topic: 'Моніторинг vs Оцінювання',
+    pill: 'pill-m',
+    pillLabel: 'М vs О',
+    scenario: 'Керівник програми хоче зрозуміти, чи виконується план активностей і чи не відстають показники охоплення бенефіціарів цього місяця. Який інструмент йому потрібен?',
+    opts: ['Зовнішнє оцінювання', 'Моніторинг', 'Ex-post Evaluation', 'Фокус-групова дискусія'],
+    answer: 1,
+    exp: '<strong>Моніторинг</strong> здійснюється регулярно та безперервно протягом реалізації проєкту. Він відстежує прогрес в реальному часі та допомагає приймати оперативні управлінські рішення — саме те, що потрібно керівнику.'
+  },
+  {
+    topic: 'Data Verification',
+    pill: 'pill-v',
+    pillLabel: 'Верифікація даних',
+    scenario: 'Команда зібрала дані про 500 бенефіціарів у KoboToolbox. MEAL офіцер помітив, що 30 записів мають однакові імена та номери телефонів. Який наступний крок у циклі Collect → Verify → Clean → Report?',
+    opts: [
+      'Одразу писати звіт донору — дані зібрано',
+      'Видалити всі 30 записів без додаткової перевірки',
+      'Верифікувати та очистити дані — провести дедуплікацію',
+      'Зібрати ще більше даних перш ніж діяти'
+    ],
+    answer: 2,
+    exp: '<strong>Моніторинг сам по собі не гарантує достовірність даних.</strong> Зібрану інформацію потрібно перевіряти, очищати та підтверджувати. Дедуплікація — один із ключових методів верифікації.'
+  },
+  {
+    topic: 'Типи оцінювання',
+    pill: 'pill-e',
+    pillLabel: 'Типи оцінювання',
+    scenario: 'Через рік після закриття програми підтримки мікробізнесів донор хоче знати: чи продовжують бенефіціари отримувати дохід від підтриманих підприємств. Який тип оцінювання описує цю ситуацію?',
+    opts: [
+      'Оцінювання процесу впровадження',
+      'Оцінювання результатів',
+      'Ex-post Evaluation',
+      'Внутрішній моніторинг'
+    ],
+    answer: 2,
+    exp: '<strong>Ex-post Evaluation</strong> проводиться через тривалий час після закриття проєкту (зазвичай від 6 місяців до кількох років). Її головна мета — перевірити сталість (Sustainability) результатів та реальний довгостроковий вплив.'
+  },
+  {
+    topic: 'OECD DAC критерії',
+    pill: 'pill-e',
+    pillLabel: 'OECD DAC',
+    scenario: 'Організація реалізувала програму психосоціальної підтримки для ВПО. Команда хоче зрозуміти: чи справді програма відповідала тому, що люди насправді потребували — а не просто тому, що було легше реалізувати. Який критерій OECD DAC це перевіряє?',
+    opts: ['Efficiency — ефективність використання ресурсів', 'Sustainability — сталість результатів', 'Relevance — відповідність потребам', 'Impact — загальний вплив на громаду'],
+    answer: 2,
+    exp: '<strong>Relevance</strong> перевіряє: чи відповідала програма реальним потребам і пріоритетам цільової групи? Це перший і фундаментальний критерій OECD DAC — без нього решта не має сенсу.'
+  },
+  {
+    topic: 'Методи оцінювання',
+    pill: 'pill-mix',
+    pillLabel: 'Методи',
+    scenario: 'MEAL команда хоче зрозуміти і скільки людей отримали допомогу (кількісно), і як вони себе почувають після програми (якісно). Який підхід є найкращою практикою в гуманітарному оцінюванні?',
+    opts: [
+      'Лише кількісний — опитування і статистика',
+      'Лише якісний — FGD та інтерв\'ю з бенефіціарами',
+      'Mixed Methods — поєднання кількісних і якісних методів',
+      'Зовнішнє оцінювання замість внутрішнього'
+    ],
+    answer: 2,
+    exp: '<strong>Mixed Methods</strong> є найкращою практикою в гуманітарному оцінюванні. Він комбінує цифри, реальний досвід людей, їхнє сприйняття та глибоке розуміння контексту — і дає найповнішу картину.'
+  },
+  {
+    topic: 'Внутрішнє vs Зовнішнє',
+    pill: 'pill-m',
+    pillLabel: 'Внутрішнє vs Зовнішнє',
+    scenario: 'Організація має обмежений бюджет і добре знає місцевий контекст. Вони хочуть швидко оцінити ефективність програми без великих витрат на зовнішніх консультантів. Яка ключова перевага внутрішнього оцінювання в цьому випадку?',
+    opts: [
+      'Вища об\'єктивність та більша довіра з боку донорів',
+      'Менші витрати, швидший процес і глибоке розуміння контексту',
+      'Повна незалежність від команди проєкту',
+      'Обов\'язкова вимога стандартів CHS'
+    ],
+    answer: 1,
+    exp: '<strong>Внутрішнє оцінювання</strong> є дешевшим і швидшим, а команда вже розуміє місцеві реалії та процеси. Головний ризик — можлива упередженість. Зовнішнє оцінювання дорожче, але забезпечує більшу об\'єктивність і довіру донорів.'
+  }
+];
+
+const letters = ['А', 'Б', 'В', 'Г'];
+let cur = 0, score = 0, answered = false;
+let topicScores = {};
+
+function render() {
+  const q = qs[cur];
+  document.getElementById('qnum').textContent = `${cur + 1} / ${qs.length}`;
+  document.getElementById('prog').style.width = `${(cur / qs.length) * 100}%`;
+  document.getElementById('tpill').innerHTML = `<span class="topic-pill ${q.pill}">${q.pillLabel}</span>`;
+  document.getElementById('scenario').textContent = q.scenario;
+  document.getElementById('fb').style.display = 'none';
+  document.getElementById('nbtn').style.display = 'none';
+  answered = false;
+
+  const o = document.getElementById('opts');
+  o.innerHTML = '';
+  q.opts.forEach((opt, i) => {
+    const b = document.createElement('button');
+    b.className = 'opt';
+    b.innerHTML = `<span class="opt-letter">${letters[i]}</span><span>${opt}</span>`;
+    b.onclick = () => select(i, q);
+    o.appendChild(b);
+  });
+}
+
+function select(idx, q) {
+  if (answered) return;
+  answered = true;
+
+  if (!topicScores[q.topic]) topicScores[q.topic] = [0, 0];
+  topicScores[q.topic][1]++;
+
+  document.querySelectorAll('.opt').forEach((b, i) => {
+    b.disabled = true;
+    if (i === q.answer) b.classList.add('correct');
+    else if (i === idx && idx !== q.answer) b.classList.add('wrong');
+  });
+
+  const ok = idx === q.answer;
+  if (ok) { score++; topicScores[q.topic][0]++; }
+
+  const fb = document.getElementById('fb');
+  fb.className = 'fb ' + (ok ? 'correct' : 'wrong');
+  fb.innerHTML = (ok ? '✓ Правильно! ' : `✗ Правильна відповідь: <strong>${letters[q.answer]}) ${q.opts[q.answer]}</strong>. `) + q.exp;
+  fb.style.display = 'block';
+
+  const nb = document.getElementById('nbtn');
+  nb.style.display = 'inline-block';
+  nb.textContent = cur < qs.length - 1 ? 'Наступне питання →' : 'Переглянути результат →';
+}
+
+document.getElementById('nbtn').onclick = () => {
+  cur++;
+  if (cur >= qs.length) showResult();
+  else render();
+};
+
+function showResult() {
+  document.getElementById('quiz').style.display = 'none';
+  document.getElementById('result').style.display = 'block';
+  document.getElementById('prog').style.width = '100%';
+  document.getElementById('qnum').textContent = '✓ Завершено';
+  document.getElementById('rscore').textContent = `${score} / ${qs.length}`;
+
+  const labels = [
+    'Спробуйте ще раз — перегляньте матеріал модуля',
+    'Є над чим попрацювати — зверніть увагу на пояснення',
+    'Непогано, але є прогалини',
+    'Добре! Основи МіО засвоєно',
+    'Дуже добре!',
+    'Відмінно! Модуль 3 засвоєно повністю ✓',
+    'Відмінно! Модуль 3 засвоєно повністю ✓'
+  ];
+  document.getElementById('rlabel').textContent = labels[score] || labels[5];
+
+  const wrap = document.getElementById('topics-wrap');
+  wrap.innerHTML = '';
+  Object.entries(topicScores).forEach(([name, arr]) => {
+    const d = document.createElement('div');
+    d.className = 'topic-row';
+    d.innerHTML = `<span class="topic-name">${name}</span><span class="topic-score">${arr[0]}/${arr[1]}</span>`;
+    wrap.appendChild(d);
+  });
+}
+
+function restart() {
+  cur = 0; score = 0; topicScores = {};
+  document.getElementById('result').style.display = 'none';
+  document.getElementById('quiz').style.display = 'block';
+  render();
+}
+
+render();
+</script>
+</body>
+</html>
