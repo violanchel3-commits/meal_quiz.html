@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MEAL Тренажер — Логічний ланцюг</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --navy: #1a3a6b;
+    --navy-light: #2a5298;
+    --pink: #E12269;
+    --pink-light: #f04080;
+    --bg: #f7f8fc;
+    --white: #ffffff;
+    --gray: #6b7280;
+    --gray-light: #e8eaf0;
+    --success: #059669;
+    --success-bg: #d1fae5;
+    --error: #dc2626;
+    --error-bg: #fee2e2;
+    --radius: 10px;
+    --shadow: 0 2px 12px rgba(26,58,107,0.10);
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: #1a1a2e;
+    min-height: 100vh;
+  }
+
+  /* HEADER */
+  .header {
+    background: var(--navy);
+    color: white;
+    padding: 1.25rem 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .header-logo { font-size: 12px; font-weight: 700; letter-spacing: .06em; opacity: .85; }
+  .header-title { font-size: 15px; font-weight: 600; }
+
+  /* NAV TABS */
+  .tabs {
+    display: flex;
+    background: var(--white);
+    border-bottom: 2px solid var(--gray-light);
+    padding: 0 2rem;
+  }
+  .tab {
+    padding: .9rem 1.5rem;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -2px;
+    color: var(--gray);
+    transition: color .2s, border-color .2s;
+    user-select: none;
+  }
+  .tab.active { color: var(--navy); border-bottom-color: var(--pink); }
+  .tab:hover:not(.active) { color: var(--navy); }
+
+  /* SCREENS */
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  .container { max-width: 780px; margin: 0 auto; padding: 2rem 1.5rem; }
+
+  /* ===== PART 1: DRAG AND DROP ===== */
+  .intro-box {
+    background: var(--white);
+    border-radius: var(--radius);
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: var(--shadow);
+    border-left: 4px solid var(--navy);
+  }
+  .intro-box h2 { font-size: 16px; font-weight: 600; margin-bottom: .4rem; color: var(--navy); }
+  .intro-box p { font-size: 14px; color: var(--gray); line-height: 1.6; }
+
+  .drag-area {
+    background: var(--white);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    box-shadow: var(--shadow);
+    margin-bottom: 1.25rem;
+  }
+  .drag-area h3 { font-size: 13px; font-weight: 700; color: var(--gray); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 1rem; }
+
+  .cards-pool {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    min-height: 60px;
+  }
+
+  .chain-slots {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .slot {
+    width: 130px;
+    height: 80px;
+    border: 2px dashed var(--gray-light);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    color: var(--gray);
+    transition: border-color .2s, background .2s;
+    position: relative;
+  }
+  .slot.drag-over { border-color: var(--navy); background: #eef2fb; }
+  .slot.filled { border-style: solid; border-color: var(--gray-light); padding: 4px; }
+  .slot-label {
+    font-size: 10px;
+    color: var(--gray);
+    position: absolute;
+    bottom: 4px;
+    left: 0; right: 0;
+    text-align: center;
+  }
+
+  .arrow { font-size: 18px; color: var(--gray-light); flex-shrink: 0; }
+
+  .drag-card {
+    padding: .6rem 1rem;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: grab;
+    user-select: none;
+    border: 2px solid transparent;
+    transition: transform .15s, box-shadow .15s;
+    white-space: nowrap;
+  }
+  .drag-card:active { cursor: grabbing; transform: scale(1.04); box-shadow: 0 4px 16px rgba(0,0,0,.15); }
+
+  .card-inputs    { background: #EEF2FF; color: #3730a3; border-color: #c7d2fe; }
+  .card-activities{ background: #FFF7ED; color: #92400e; border-color: #fed7aa; }
+  .card-outputs   { background: #ECFDF5; color: #065f46; border-color: #a7f3d0; }
+  .card-outcomes  { background: #FDF4FF; color: #6b21a8; border-color: #e9d5ff; }
+  .card-impact    { background: #FEF2F2; color: #991b1b; border-color: #fecaca; }
+
+  .placed-card {
+    width: 100%;
+    height: 100%;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    text-align: center;
+    padding: 4px;
+    cursor: pointer;
+  }
+
+  .drag-actions { display: flex; gap: 10px; margin-top: 1.25rem; }
+  .btn {
+    padding: .65rem 1.4rem;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    transition: opacity .15s;
+  }
+  .btn:hover { opacity: .88; }
+  .btn-primary { background: var(--navy); color: white; }
+  .btn-secondary { background: var(--gray-light); color: var(--navy); }
+  .btn-pink { background: var(--pink); color: white; }
+
+  .result-banner {
+    border-radius: var(--radius);
+    padding: 1rem 1.25rem;
+    font-size: 14px;
+    line-height: 1.6;
+    margin-top: 1.25rem;
+    display: none;
+  }
+  .result-banner.correct { background: var(--success-bg); color: #065f46; border: 1px solid #6ee7b7; }
+  .result-banner.wrong   { background: var(--error-bg); color: #991b1b; border: 1px solid #fca5a5; }
+
+  /* EXAMPLE CHAIN */
+  .example-chain {
+    background: var(--white);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    box-shadow: var(--shadow);
+    margin-bottom: 1.25rem;
+  }
+  .example-chain h3 { font-size: 13px; font-weight: 700; color: var(--gray); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 1rem; }
+  .example-row {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 6px;
+    align-items: start;
+  }
+  .example-card {
+    border-radius: 8px;
+    padding: .75rem .6rem;
+    text-align: center;
+  }
+  .example-card .level { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 4px; }
+  .example-card .content { font-size: 11px; line-height: 1.4; }
+
+  /* ===== PART 2: SCENARIO QUIZ ===== */
+  .progress-bar { height: 4px; background: var(--gray-light); border-radius: 2px; margin-bottom: 1.5rem; }
+  .progress-fill { height: 100%; border-radius: 2px; background: var(--navy); transition: width .4s; }
+
+  .scenario-card {
+    background: var(--white);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    box-shadow: var(--shadow);
+    margin-bottom: 1rem;
+  }
+  .scenario-tag {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 10px;
+    border-radius: 20px;
+    margin-bottom: .75rem;
+    background: #EEF2FF;
+    color: var(--navy);
+  }
+  .scenario-text {
+    font-size: 15px;
+    line-height: 1.7;
+    color: #1a1a2e;
+    margin-bottom: .4rem;
+  }
+  .scenario-question {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--gray);
+    margin-top: .75rem;
+  }
+
+  .opts-grid { display: grid; gap: 8px; margin-bottom: 1rem; }
+  .opt-btn {
+    background: var(--white);
+    border: 1.5px solid var(--gray-light);
+    border-radius: 8px;
+    padding: .75rem 1rem;
+    font-size: 14px;
+    font-weight: 500;
+    color: #1a1a2e;
+    cursor: pointer;
+    text-align: left;
+    font-family: inherit;
+    transition: background .15s, border-color .15s;
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+  }
+  .opt-btn:hover:not(:disabled) { background: #f0f4ff; border-color: var(--navy); }
+  .opt-letter { font-weight: 700; color: var(--gray); min-width: 18px; flex-shrink: 0; }
+  .opt-btn.correct { background: var(--success-bg); border-color: #34d399; color: #065f46; }
+  .opt-btn.correct .opt-letter { color: #065f46; }
+  .opt-btn.wrong { background: var(--error-bg); border-color: #f87171; color: #991b1b; }
+  .opt-btn.wrong .opt-letter { color: #991b1b; }
+  .opt-btn:disabled { cursor: default; }
+
+  .feedback-box {
+    border-radius: 8px;
+    padding: .85rem 1rem;
+    font-size: 14px;
+    line-height: 1.55;
+    margin-bottom: 1rem;
+    display: none;
+  }
+  .feedback-box.correct { background: var(--success-bg); color: #065f46; border: 1px solid #6ee7b7; }
+  .feedback-box.wrong   { background: var(--error-bg); color: #991b1b; border: 1px solid #fca5a5; }
+
+  .next-btn-wrap { text-align: right; }
+
+  /* RESULT SCREEN */
+  .result-screen { text-align: center; padding: 3rem 1rem; }
+  .result-score { font-size: 56px; font-weight: 700; color: var(--navy); margin-bottom: .4rem; }
+  .result-msg { font-size: 16px; color: var(--gray); margin-bottom: 2rem; line-height: 1.6; }
+  .score-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 2rem; text-align: left; max-width: 400px; margin-left: auto; margin-right: auto; }
+  .score-item { background: var(--white); border-radius: 8px; padding: .7rem 1rem; display: flex; justify-content: space-between; font-size: 13px; box-shadow: var(--shadow); }
+  .score-item-label { color: var(--gray); }
+  .score-item-val { font-weight: 700; color: var(--navy); }
+
+  @media (max-width: 600px) {
+    .chain-slots { flex-direction: column; align-items: flex-start; }
+    .arrow { transform: rotate(90deg); }
+    .example-row { grid-template-columns: 1fr; }
+    .tabs { padding: 0 1rem; }
+    .tab { padding: .75rem .75rem; font-size: 13px; }
+    .header { flex-direction: column; gap: .4rem; text-align: center; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-logo">ПРАВО НА ЗАХИСТ · MEAL</div>
+  <div class="header-title">Тренажер: Логічний ланцюг проєкту</div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('drag')">🧩 Частина 1 — Побудуй ланцюг</div>
+  <div class="tab" onclick="switchTab('scenario')">📋 Частина 2 — Сценарії</div>
+</div>
+
+<!-- ===== PART 1: DRAG ===== -->
+<div class="screen active" id="screen-drag">
+<div class="container">
+
+  <div class="intro-box">
+    <h2>Побудуй логічний ланцюг проєкту</h2>
+    <p>Перетягніть картки у правильному порядку — від ресурсів до довгострокового впливу. Клацніть на картку в слоті, щоб повернути її назад.</p>
+  </div>
+
+  <!-- Round selector -->
+  <div style="display:flex; gap:10px; margin-bottom:1.25rem; flex-wrap:wrap;">
+    <button class="btn btn-secondary" onclick="loadRound(1)" id="r1btn" style="border: 2px solid var(--navy);">Раунд 1 — Базовий</button>
+    <button class="btn btn-secondary" onclick="loadRound(2)" id="r2btn">Раунд 2 — Юридична допомога</button>
+    <button class="btn btn-secondary" onclick="loadRound(3)" id="r3btn">Раунд 3 — NFI програма</button>
+  </div>
+
+  <div class="drag-area">
+    <h3>🃏 Картки для розміщення</h3>
+    <div class="cards-pool" id="pool"></div>
+  </div>
+
+  <div class="drag-area">
+    <h3>📐 Ланцюг результатів</h3>
+    <div class="chain-slots" id="slots">
+      <div class="slot" id="slot-0" ondragover="dragOver(event)" ondrop="drop(event,0)" ondragleave="dragLeave(event)"><span>?</span><span class="slot-label">Крок 1</span></div>
+      <div class="arrow">→</div>
+      <div class="slot" id="slot-1" ondragover="dragOver(event)" ondrop="drop(event,1)" ondragleave="dragLeave(event)"><span>?</span><span class="slot-label">Крок 2</span></div>
+      <div class="arrow">→</div>
+      <div class="slot" id="slot-2" ondragover="dragOver(event)" ondrop="drop(event,2)" ondragleave="dragLeave(event)"><span>?</span><span class="slot-label">Крок 3</span></div>
+      <div class="arrow">→</div>
+      <div class="slot" id="slot-3" ondragover="dragOver(event)" ondrop="drop(event,3)" ondragleave="dragLeave(event)"><span>?</span><span class="slot-label">Крок 4</span></div>
+      <div class="arrow">→</div>
+      <div class="slot" id="slot-4" ondragover="dragOver(event)" ondrop="drop(event,4)" ondragleave="dragLeave(event)"><span>?</span><span class="slot-label">Крок 5</span></div>
+    </div>
+  </div>
+
+  <div class="drag-actions">
+    <button class="btn btn-primary" onclick="checkChain()">Перевірити ✓</button>
+    <button class="btn btn-secondary" onclick="resetChain()">Скинути</button>
+  </div>
+
+  <div class="result-banner" id="drag-result"></div>
+
+  <!-- Example -->
+  <div class="example-chain" id="example-box" style="display:none; margin-top:1.5rem;">
+    <h3>✅ Правильний порядок</h3>
+    <div class="example-row" id="example-row"></div>
+  </div>
+
+</div>
+</div>
+
+<!-- ===== PART 2: SCENARIOS ===== -->
+<div class="screen" id="screen-scenario">
+<div class="container">
+
+  <div id="quiz-area">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+      <div style="font-size:12px; color:var(--gray); font-weight:600;" id="q-counter">Питання 1 з 6</div>
+      <div style="font-size:12px; color:var(--gray);" id="q-score-live">✓ 0</div>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="progress" style="width:0%"></div></div>
+
+    <div class="scenario-card">
+      <div class="scenario-tag" id="s-tag"></div>
+      <div class="scenario-text" id="s-text"></div>
+      <div class="scenario-question" id="s-question"></div>
+    </div>
+
+    <div class="opts-grid" id="opts"></div>
+    <div class="feedback-box" id="s-feedback"></div>
+    <div class="next-btn-wrap">
+      <button class="btn btn-primary" id="s-next" style="display:none;" onclick="nextQ()">Наступне →</button>
+    </div>
+  </div>
+
+  <div id="result-area" style="display:none;">
+    <div class="result-screen">
+      <div class="result-score" id="r-score"></div>
+      <div class="result-msg" id="r-msg"></div>
+      <div class="score-grid" id="r-grid"></div>
+      <button class="btn btn-primary" onclick="restartScenario()">Пройти ще раз</button>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<script>
+// ===== DRAG AND DROP =====
+const ROUNDS = [
+  {
+    label: 'Базовий',
+    cards: [
+      { id:'inputs',     text:'Inputs\nРесурси',        cls:'card-inputs',     short:'Inputs' },
+      { id:'activities', text:'Activities\nАктивності',  cls:'card-activities', short:'Activities' },
+      { id:'outputs',    text:'Outputs\nПродукти',       cls:'card-outputs',    short:'Outputs' },
+      { id:'outcomes',   text:'Outcomes\nЗміни',         cls:'card-outcomes',   short:'Outcomes' },
+      { id:'impact',     text:'Impact\nВплив',           cls:'card-impact',     short:'Impact' },
+    ],
+    answer: ['inputs','activities','outputs','outcomes','impact'],
+    example: [
+      { level:'INPUTS', content:'Юрист, бюджет, офіс', cls:'card-inputs' },
+      { level:'ACTIVITIES', content:'Проведення юридичних консультацій', cls:'card-activities' },
+      { level:'OUTPUTS', content:'500 ВПО отримали консультації', cls:'card-outputs' },
+      { level:'OUTCOMES', content:'ВПО мають покращений доступ до правової інформації', cls:'card-outcomes' },
+      { level:'IMPACT', content:'Посилення правової захищеності ВПО', cls:'card-impact' },
+    ]
+  },
+  {
+    label: 'Юридична допомога',
+    cards: [
+      { id:'c1', text:'500 ВПО отримали\nконсультації',      cls:'card-outputs',    short:'500 консультацій' },
+      { id:'c2', text:'ВПО знають\nсвої права',              cls:'card-outcomes',   short:'Знання прав' },
+      { id:'c3', text:'Юрист, офіс,\nбюджет',               cls:'card-inputs',     short:'Юрист+бюджет' },
+      { id:'c4', text:'Посилення правової\nзахищеності ВПО', cls:'card-impact',     short:'Правовий захист' },
+      { id:'c5', text:'Проведення індивідуальних\nконсультацій', cls:'card-activities', short:'Консультації' },
+    ],
+    answer: ['c3','c5','c1','c2','c4'],
+    example: [
+      { level:'INPUTS', content:'Юрист, офіс, бюджет', cls:'card-inputs' },
+      { level:'ACTIVITIES', content:'Проведення індивідуальних консультацій', cls:'card-activities' },
+      { level:'OUTPUTS', content:'500 ВПО отримали консультації', cls:'card-outputs' },
+      { level:'OUTCOMES', content:'ВПО знають свої права', cls:'card-outcomes' },
+      { level:'IMPACT', content:'Посилення правової захищеності ВПО', cls:'card-impact' },
+    ]
+  },
+  {
+    label: 'NFI програма',
+    cards: [
+      { id:'n1', text:'Розподіл\nпродуктових наборів',     cls:'card-activities', short:'Розподіл' },
+      { id:'n2', text:'Покращення\nпродовольчої безпеки',  cls:'card-impact',     short:'Продовольча безпека' },
+      { id:'n3', text:'Наявність продуктів\nхарчування',   cls:'card-outcomes',   short:'Доступ до їжі' },
+      { id:'n4', text:'Фінансування, склад,\nволонтери',   cls:'card-inputs',     short:'Фінансування' },
+      { id:'n5', text:'1200 сімей отримали\nнабори',       cls:'card-outputs',    short:'1200 сімей' },
+    ],
+    answer: ['n4','n1','n5','n3','n2'],
+    example: [
+      { level:'INPUTS', content:'Фінансування, склад, волонтери', cls:'card-inputs' },
+      { level:'ACTIVITIES', content:'Розподіл продуктових наборів', cls:'card-activities' },
+      { level:'OUTPUTS', content:'1200 сімей отримали набори', cls:'card-outputs' },
+      { level:'OUTCOMES', content:'Наявність продуктів харчування в сім\'ях', cls:'card-outcomes' },
+      { level:'IMPACT', content:'Покращення продовольчої безпеки громади', cls:'card-impact' },
+    ]
+  }
+];
+
+let currentRound = 0;
+let slotData = [null,null,null,null,null];
+let dragging = null;
+let draggingFrom = null; // 'pool' or slot index
+
+function loadRound(n) {
+  currentRound = n-1;
+  slotData = [null,null,null,null,null];
+  dragging = null;
+  draggingFrom = null;
+  document.getElementById('drag-result').style.display = 'none';
+  document.getElementById('example-box').style.display = 'none';
+  [1,2,3].forEach(i => {
+    const b = document.getElementById('r'+i+'btn');
+    b.style.border = i===n ? '2px solid var(--navy)' : '2px solid transparent';
+  });
+  renderPool();
+  renderSlots();
+}
+
+function renderPool() {
+  const pool = document.getElementById('pool');
+  pool.innerHTML = '';
+  const round = ROUNDS[currentRound];
+  const placed = slotData.filter(Boolean);
+  round.cards.forEach(card => {
+    if (placed.includes(card.id)) return;
+    const el = document.createElement('div');
+    el.className = 'drag-card ' + card.cls;
+    el.textContent = card.text;
+    el.draggable = true;
+    el.dataset.cardId = card.id;
+    el.style.whiteSpace = 'pre-line';
+    el.style.fontSize = '12px';
+    el.addEventListener('dragstart', e => { dragging = card.id; draggingFrom = 'pool'; e.dataTransfer.effectAllowed = 'move'; });
+    el.addEventListener('dragend', () => { dragging = null; draggingFrom = null; });
+    pool.appendChild(el);
+  });
+}
+
+function renderSlots() {
+  const round = ROUNDS[currentRound];
+  for (let i=0; i<5; i++) {
+    const slot = document.getElementById('slot-'+i);
+    slot.innerHTML = '';
+    if (slotData[i]) {
+      const card = round.cards.find(c=>c.id===slotData[i]);
+      slot.classList.add('filled');
+      const placed = document.createElement('div');
+      placed.className = 'placed-card ' + card.cls;
+      placed.textContent = card.text;
+      placed.style.whiteSpace = 'pre-line';
+      placed.style.fontSize = '11px';
+      placed.title = 'Клацніть щоб повернути';
+      placed.onclick = () => { slotData[i] = null; renderPool(); renderSlots(); };
+      slot.appendChild(placed);
+    } else {
+      slot.classList.remove('filled');
+      slot.innerHTML = '<span>?</span><span class="slot-label">Крок '+(i+1)+'</span>';
+    }
+  }
+}
+
+function dragOver(e) { e.preventDefault(); e.currentTarget.classList.add('drag-over'); }
+function dragLeave(e) { e.currentTarget.classList.remove('drag-over'); }
+
+function drop(e, slotIndex) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  if (!dragging) return;
+  // If slot already filled — swap
+  const prev = slotData[slotIndex];
+  slotData[slotIndex] = dragging;
+  // If came from another slot, free that slot
+  if (draggingFrom !== 'pool') {
+    const fromIdx = parseInt(draggingFrom);
+    if (prev) slotData[fromIdx] = prev;
+    else slotData[fromIdx] = null;
+  }
+  dragging = null; draggingFrom = null;
+  renderPool(); renderSlots();
+}
+
+// Make slots also draggable sources
+for (let i=0; i<5; i++) {
+  const slot = document.getElementById('slot-'+i);
+  slot.addEventListener('dragstart', e => {
+    if (slotData[i]) { dragging = slotData[i]; draggingFrom = String(i); e.dataTransfer.effectAllowed='move'; }
+    else e.preventDefault();
+  });
+  slot.draggable = true;
+}
+
+function checkChain() {
+  const round = ROUNDS[currentRound];
+  const filled = slotData.filter(Boolean);
+  if (filled.length < 5) {
+    const res = document.getElementById('drag-result');
+    res.className = 'result-banner wrong';
+    res.innerHTML = '⚠️ Розмістіть усі 5 карток перш ніж перевіряти.';
+    res.style.display = 'block';
+    return;
+  }
+  const correct = round.answer.every((id,i) => slotData[i] === id);
+  const res = document.getElementById('drag-result');
+  const ex = document.getElementById('example-box');
+  if (correct) {
+    res.className = 'result-banner correct';
+    res.innerHTML = '✓ Відмінно! Логічний ланцюг побудовано правильно. Inputs → Activities → Outputs → Outcomes → Impact — саме так виглядає вертикальна логіка результатів проєкту.';
+  } else {
+    res.className = 'result-banner wrong';
+    res.innerHTML = '✗ Не зовсім так. Пам\'ятайте: спочатку ресурси (Inputs), потім дії (Activities), потім прямі результати (Outputs), потім зміни для людей (Outcomes), і нарешті довгостроковий вплив (Impact). Перегляньте правильний порядок нижче.';
+    const exRow = document.getElementById('example-row');
+    exRow.innerHTML = '';
+    round.example.forEach(item => {
+      const div = document.createElement('div');
+      div.className = 'example-card ' + item.cls;
+      div.innerHTML = `<div class="level">${item.level}</div><div class="content">${item.content}</div>`;
+      exRow.appendChild(div);
+    });
+    ex.style.display = 'block';
+  }
+  res.style.display = 'block';
+}
+
+function resetChain() {
+  slotData = [null,null,null,null,null];
+  document.getElementById('drag-result').style.display = 'none';
+  document.getElementById('example-box').style.display = 'none';
+  renderPool(); renderSlots();
+}
+
+// Init
+loadRound(1);
+
+// ===== SCENARIO QUIZ =====
+const SCENARIOS = [
+  {
+    tag: 'Рівень результату',
+    text: 'Організація провела 12 тренінгів з правової грамотності для ВПО у Краматорській громаді. Загалом участь взяли 340 осіб.',
+    question: 'Що описує ця фраза — "340 осіб пройшли тренінг"?',
+    opts: ['Inputs — ресурси програми', 'Activities — що команда робила', 'Outputs — прямий результат діяльності', 'Outcomes — зміни для бенефіціарів'],
+    answer: 2,
+    exp: '<strong>Outputs</strong> — це прямий, вимірюваний результат активності. "340 осіб пройшли тренінг" — це те, що команда безпосередньо надала або досягла. Зміни у знаннях чи поведінці учасників — це вже Outcomes, які вимірюються пізніше.'
+  },
+  {
+    tag: 'Рівень результату',
+    text: 'Після серії тренінгів 73% учасників змогли правильно назвати три ключові права ВПО та пояснити куди звертатись у разі їх порушення.',
+    question: 'Який рівень результату описано?',
+    opts: ['Outputs — кількість навчених', 'Outcomes — зміни у знаннях та поведінці', 'Impact — довгостроковий вплив на громаду', 'Activities — що команда робила'],
+    answer: 1,
+    exp: '<strong>Outcomes</strong> — це зміни у знаннях, поведінці або доступі цільової групи, що відбулися внаслідок програми. 73% учасників, які тепер знають свої права — це саме Outcome, а не Output (Output — це "340 пройшли тренінг").'
+  },
+  {
+    tag: 'Рівень результату',
+    text: 'Після отримання гуманітарної допомоги сім\'я ВПО змогла оплатити оренду житла і залишитися у безпечному місці. Ризик повторного переміщення знизився.',
+    question: 'Що описує ця ситуація?',
+    opts: ['Outputs — сім\'я отримала грошову допомогу', 'Activities — команда провела виплати', 'Outcomes — зміна у стані та можливостях сім\'ї внаслідок програми', 'Impact — довгостроковий вплив на всю громаду'],
+    answer: 2,
+    exp: '<strong>Outcomes</strong> — це зміни що відбулися для конкретної людини або сім\'ї внаслідок програми: нова можливість, покращений стан, знижений ризик. Output тут — сума грошей отримана сім\'єю. А те, що вони змогли оплатити житло і залишитися — це вже Outcome.'
+  },
+  {
+    tag: 'Рівень результату',
+    text: 'Юрист, бюджет 50 000 грн на 3 місяці, ноутбук, офісне приміщення та волонтер-координатор.',
+    question: 'Який рівень логічного ланцюга описано?',
+    opts: ['Activities — дії команди', 'Outputs — що надано бенефіціарам', 'Inputs — ресурси для реалізації програми', 'Outcomes — зміни для цільової групи'],
+    answer: 2,
+    exp: '<strong>Inputs</strong> — це все що організація вкладає в програму: люди, гроші, обладнання, приміщення, час. Без Inputs неможливо реалізувати жодну активність.'
+  },
+  {
+    tag: 'Рівень результату',
+    text: 'Координатор захисту провів 8 виїздів до громад Херсонської області, під час яких надав 120 консультацій з питань документів та соціальних виплат.',
+    question: '"8 виїздів" та "120 консультацій" — це який рівень результату?',
+    opts: ['Inputs — ресурси витрачені на виїзди', 'Outcomes — зміни для отримувачів консультацій', 'Outputs — прямі результати діяльності команди', 'Impact — довгостроковий вплив на громаду'],
+    answer: 2,
+    exp: '<strong>Outputs</strong> — це те, що команда безпосередньо зробила і що можна порахувати одразу після активності: 8 виїздів, 120 консультацій. Outputs не описують що змінилось у людей — лише що було надано. Зміни у знаннях або можливостях бенефіціарів — це вже Outcomes, які вимірюються пізніше.'
+  },
+  {
+    tag: 'Вертикальна логіка',
+    text: 'Команда провела аналіз і виявила: тренінги проведено (✓), 400 осіб охоплено (✓), але рівень знань учасників після тренінгів залишився таким самим як до початку програми.',
+    question: 'Де порвався ланцюг результатів?',
+    opts: ['Між Inputs і Activities — недостатньо ресурсів', 'Між Activities і Outputs — активності не охопили цільову групу', 'Між Outputs і Outcomes — Output досягнуто, але Outcome не відбувся', 'Між Outcomes і Impact — зміни не вплинули на громаду'],
+    answer: 2,
+    exp: '<strong>Розрив між Outputs і Outcomes.</strong> Команда провела активності (Activities ✓) і охопила людей (Outputs ✓), але очікувана зміна у знаннях (Outcome) не відбулась. Це сигнал переглянути припущення (assumptions): можливо, формат не підходив, мова була незрозумілою або тривалість тренінгу — недостатньою.'
+  }
+];
+
+let qIdx = 0, score = 0, answered = false;
+let topicScores = {};
+const letters = ['А','Б','В','Г'];
+
+function renderQ() {
+  const q = SCENARIOS[qIdx];
+  document.getElementById('q-counter').textContent = `Питання ${qIdx+1} з ${SCENARIOS.length}`;
+  document.getElementById('q-score-live').textContent = `✓ ${score}`;
+  document.getElementById('progress').style.width = `${(qIdx/SCENARIOS.length)*100}%`;
+  document.getElementById('s-tag').textContent = q.tag;
+  document.getElementById('s-text').textContent = q.text;
+  document.getElementById('s-question').textContent = q.question;
+  document.getElementById('s-feedback').style.display = 'none';
+  document.getElementById('s-next').style.display = 'none';
+  answered = false;
+  const opts = document.getElementById('opts');
+  opts.innerHTML = '';
+  q.opts.forEach((opt,i) => {
+    const b = document.createElement('button');
+    b.className = 'opt-btn';
+    b.innerHTML = `<span class="opt-letter">${letters[i]}</span><span>${opt}</span>`;
+    b.onclick = () => selectA(i, q);
+    opts.appendChild(b);
+  });
+}
+
+function selectA(idx, q) {
+  if (answered) return;
+  answered = true;
+  if (!topicScores[q.tag]) topicScores[q.tag] = [0,0];
+  topicScores[q.tag][1]++;
+  const btns = document.querySelectorAll('.opt-btn');
+  btns.forEach((b,i) => {
+    b.disabled = true;
+    if (i===q.answer) b.classList.add('correct');
+    else if (i===idx && idx!==q.answer) b.classList.add('wrong');
+  });
+  const ok = idx===q.answer;
+  if (ok) { score++; topicScores[q.tag][0]++; }
+  const fb = document.getElementById('s-feedback');
+  fb.className = 'feedback-box ' + (ok?'correct':'wrong');
+  fb.innerHTML = (ok ? '✓ Правильно! ' : `✗ Правильна відповідь: <strong>${letters[q.answer]}) ${q.opts[q.answer]}</strong>. `) + q.exp;
+  fb.style.display = 'block';
+  document.getElementById('s-next').style.display = 'inline-block';
+  document.getElementById('s-next').textContent = qIdx < SCENARIOS.length-1 ? 'Наступне питання →' : 'Переглянути результат →';
+  document.getElementById('q-score-live').textContent = `✓ ${score}`;
+}
+
+function nextQ() {
+  qIdx++;
+  if (qIdx >= SCENARIOS.length) showResult();
+  else renderQ();
+}
+
+function showResult() {
+  document.getElementById('quiz-area').style.display = 'none';
+  document.getElementById('result-area').style.display = 'block';
+  document.getElementById('progress').style.width = '100%';
+  document.getElementById('r-score').textContent = `${score} / ${SCENARIOS.length}`;
+  const msgs = ['Спробуйте ще раз — матеріал варто перечитати','Є прогалини — перегляньте пояснення','Непогано, але є що покращити','Добре! Логіку проєкту розумієте','Дуже добре!','Відмінно! Логічний ланцюг засвоєно ✓','Відмінно! Логічний ланцюг засвоєно ✓'];
+  document.getElementById('r-msg').textContent = msgs[score] || msgs[5];
+  const grid = document.getElementById('r-grid');
+  grid.innerHTML = '';
+  Object.entries(topicScores).forEach(([name,[got,total]]) => {
+    const d = document.createElement('div');
+    d.className = 'score-item';
+    d.innerHTML = `<span class="score-item-label">${name}</span><span class="score-item-val">${got}/${total}</span>`;
+    grid.appendChild(d);
+  });
+}
+
+function restartScenario() {
+  qIdx = 0; score = 0; answered = false; topicScores = {};
+  document.getElementById('quiz-area').style.display = 'block';
+  document.getElementById('result-area').style.display = 'none';
+  renderQ();
+}
+
+// Tab switch
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', (i===0&&name==='drag')||(i===1&&name==='scenario')));
+  document.getElementById('screen-drag').classList.toggle('active', name==='drag');
+  document.getElementById('screen-scenario').classList.toggle('active', name==='scenario');
+}
+
+// Init scenario
+renderQ();
+</script>
+</body>
+</html>
